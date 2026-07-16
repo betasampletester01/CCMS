@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mark Attendance - {{ current_user.institute_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-blue-50">
+
+    <nav class="bg-white shadow-sm px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center mb-4 sm:mb-6">
+        <div class="flex items-center space-x-3 sm:space-x-4">
+            <a href="/" class="text-gray-500 hover:text-blue-600 text-lg sm:text-xl"><i class="fas fa-arrow-left"></i></a>
+            <h1 class="text-lg sm:text-xl font-bold text-blue-900">Mark Attendance</h1>
+        </div>
+        <div class="text-xs sm:text-sm font-medium text-gray-700 bg-gray-100 px-2 sm:px-3 py-1 rounded-full whitespace-nowrap">
+            <i class="fas fa-building text-xs mr-1"></i> <span class="hidden sm:inline">{{ current_user.institute_name }}</span>
+        </div>
+    </nav>
+
+    <div class="p-3 sm:p-6 max-w-5xl mx-auto">
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-4 p-3 sm:p-4 text-sm sm:text-base rounded-lg shadow-sm {% if category == 'success' %}bg-green-100 text-green-800 border-l-4 border-green-500{% else %}bg-red-100 text-red-800 border-l-4 border-red-500{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
+            
+            <!-- Date Selector (Responsive layout) -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 border-b pb-4 space-y-3 sm:space-y-0">
+                <h2 class="text-base sm:text-lg font-bold text-gray-800">Student Attendance List</h2>
+                
+                <form method="GET" action="/attendance" class="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto">
+                    <label class="font-medium text-gray-600 text-xs sm:text-sm whitespace-nowrap">Select Date:</label>
+                    <input type="date" name="date" value="{{ selected_date }}" onchange="this.form.submit()" class="p-2 border rounded-lg focus:ring-2 focus:ring-blue-200 outline-none text-xs sm:text-sm w-full sm:w-auto">
+                </form>
+            </div>
+
+            <!-- Attendance Form -->
+            <form method="POST" action="/attendance">
+                <input type="hidden" name="attendance_date" value="{{ selected_date }}">
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-600 text-xs sm:text-sm border-b">
+                                <th class="p-2 sm:p-3 font-semibold whitespace-nowrap">ID</th>
+                                <th class="p-2 sm:p-3 font-semibold whitespace-nowrap">Student Name</th>
+                                <th class="p-2 sm:p-3 font-semibold whitespace-nowrap">Course</th>
+                                <th class="p-2 sm:p-3 font-semibold text-center text-green-600 whitespace-nowrap">Present</th>
+                                <th class="p-2 sm:p-3 font-semibold text-center text-red-500 whitespace-nowrap">Absent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr class="border-b hover:bg-gray-50 transition text-xs sm:text-sm">
+                                <td class="p-2 sm:p-3 text-gray-500 whitespace-nowrap">#{{ student.id }}</td>
+                                <td class="p-2 sm:p-3 font-bold text-gray-800 whitespace-nowrap">{{ student.name }}</td>
+                                <td class="p-2 sm:p-3 whitespace-nowrap"><span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">{{ student.course.name }}</span></td>
+                                
+                                <td class="p-2 sm:p-3 text-center">
+                                    <input type="radio" name="status_{{ student.id }}" value="Present" class="w-4 h-4 sm:w-5 sm:h-5 text-green-600 cursor-pointer"
+                                    {% if attendance_map.get(student.id) == 'Present' %}checked{% endif %}>
+                                </td>
+                                
+                                <td class="p-2 sm:p-3 text-center">
+                                    <input type="radio" name="status_{{ student.id }}" value="Absent" class="w-4 h-4 sm:w-5 sm:h-5 text-red-500 cursor-pointer"
+                                    {% if attendance_map.get(student.id) == 'Absent' %}checked{% endif %}>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="p-4 sm:p-6 text-center text-gray-500 italic">No students found. Admit a student first!</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 sm:mt-6 flex justify-end">
+                    <button type="submit" class="w-full sm:w-auto bg-purple-600 text-white font-bold py-2 sm:py-2.5 px-4 sm:px-8 rounded-lg hover:bg-purple-700 transition shadow-sm text-sm sm:text-base" {% if not students %}disabled{% endif %}>
+                        Save Attendance
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</body>
+</html>

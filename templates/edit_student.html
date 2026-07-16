@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Student - {{ current_user.institute_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-blue-50 flex h-screen items-center justify-center p-6">
+    <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-md border border-gray-100">
+        <h2 class="text-2xl font-bold text-blue-900 mb-6 border-b pb-2">Edit Student Details</h2>
+        
+        <form method="POST" action="/edit_student/{{ student.id }}" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Student Full Name</label>
+                <input type="text" name="student_name" value="{{ student.name }}" required class="mt-1 w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-200 outline-none">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+                <input type="text" name="phone" value="{{ student.phone }}" required class="mt-1 w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-200 outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Admission Date</label>
+                <!-- यहाँ पुरानी डेट डिफ़ॉल्ट सेट है -->
+                <input type="date" name="admission_date" value="{{ student.admission_date.strftime('%Y-%m-%d') }}" required class="mt-1 w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-200 outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Change Course</label>
+                <select name="course_id" required class="mt-1 w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-200 outline-none bg-white">
+                    {% for course in courses %}
+                        <!-- जो कोर्स पहले से है, वह 'selected' दिखेगा -->
+                        <option value="{{ course.id }}" {% if course.id == student.course_id %}selected{% endif %}>
+                            {{ course.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex space-x-4 mt-6">
+                <a href="/students" class="w-1/2 bg-gray-400 text-white font-bold py-2.5 rounded-lg hover:bg-gray-500 text-center transition">Cancel</a>
+                <button type="submit" class="w-1/2 bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 transition shadow-sm">Update Student</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

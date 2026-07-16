@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fees Collection - {{ current_user.institute_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-blue-50">
+
+    <nav class="bg-white shadow-sm px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center mb-4 sm:mb-6">
+        <div class="flex items-center space-x-3 sm:space-x-4">
+            <a href="/" class="text-gray-500 hover:text-blue-600 text-lg sm:text-xl"><i class="fas fa-arrow-left"></i></a>
+            <h1 class="text-lg sm:text-xl font-bold text-blue-900">Fees Collection</h1>
+        </div>
+        <div class="text-xs sm:text-sm font-medium text-gray-700 bg-gray-100 px-2 sm:px-3 py-1 rounded-full whitespace-nowrap">
+            <i class="fas fa-building text-xs mr-1"></i> <span class="hidden sm:inline">{{ current_user.institute_name }}</span>
+        </div>
+    </nav>
+
+    <div class="p-3 sm:p-6 max-w-7xl mx-auto">
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-4 p-3 sm:p-4 text-sm sm:text-base rounded-lg shadow-sm {% if category == 'success' %}bg-green-100 text-green-800 border-l-4 border-green-500{% else %}bg-red-100 text-red-800 border-l-4 border-red-500{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            
+            <!-- Left Side: Collect Fee Form -->
+            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
+                <h2 class="text-base sm:text-lg font-bold text-gray-800 mb-4 border-b pb-2">Collect Fee</h2>
+                
+                <form method="POST" action="/fees" class="space-y-3 sm:space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Select Student</label>
+                        <select name="student_id" id="studentSelect" required onchange="showStudentDetails()" class="mt-1 w-full p-2 sm:p-2.5 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-200 outline-none transition bg-white">
+                            <option value="" disabled selected>-- Search & Choose Student --</option>
+                            {% for student in students %}
+                                <option value="{{ student.id }}" 
+                                        data-course="{{ student.course_name }}" 
+                                        data-total="{{ student.total_fee }}" 
+                                        data-paid="{{ student.total_paid }}" 
+                                        data-balance="{{ student.balance }}">
+                                    {{ student.name }} (ID: #{{ student.id }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if not students %}
+                            <p class="text-xs text-red-500 mt-1">No students found! Please admit a student first.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Dynamic Info Box -->
+                    <div id="studentDetailsBox" class="hidden bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4 space-y-2 text-xs sm:text-sm">
+                        <div class="flex justify-between border-b pb-1">
+                            <span class="text-gray-500">Course:</span>
+                            <span class="font-bold text-gray-700 text-right truncate ml-2" id="lblCourse">-</span>
+                        </div>
+                        <div class="flex justify-between border-b pb-1">
+                            <span class="text-gray-500">Total Fee:</span>
+                            <span class="font-bold text-gray-700" id="lblTotal">-</span>
+                        </div>
+                        <div class="flex justify-between border-b pb-1">
+                            <span class="text-gray-500">Total Paid:</span>
+                            <span class="font-bold text-green-600" id="lblPaid">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500 font-bold">Remaining Balance:</span>
+                            <span class="font-bold text-red-500 sm:text-base" id="lblBalance">-</span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Amount to Pay (₹)</label>
+                        <input type="number" name="amount_paid" id="amountInput" placeholder="Enter amount" required class="mt-1 w-full p-2 sm:p-2.5 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-200 outline-none transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Payment Date</label>
+                        <input type="date" name="payment_date" value="{{ today_date }}" required class="mt-1 w-full p-2 sm:p-2.5 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-200 outline-none transition">
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-yellow-500 text-white font-bold py-2 sm:py-2.5 text-sm sm:text-base rounded-lg hover:bg-yellow-600 transition shadow-sm mt-2" {% if not students %}disabled{% endif %}>
+                        Submit Fee
+                    </button>
+                </form>
+            </div>
+
+            <!-- Right Side: Recent Transactions Table -->
+            <div class="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
+                <h2 class="text-base sm:text-lg font-bold text-gray-800 mb-4 border-b pb-2">Recent Transactions</h2>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-600 text-xs sm:text-sm border-b">
+                                <th class="p-2 sm:p-3 font-semibold whitespace-nowrap">Date</th>
+                                <th class="p-2 sm:p-3 font-semibold whitespace-nowrap">Student Name</th>
+                                <th class="p-2 sm:p-3 font-semibold whitespace-nowrap">Course</th>
+                                <th class="p-2 sm:p-3 font-semibold text-green-600 whitespace-nowrap">Amount Paid</th>
+                                <th class="p-2 sm:p-3 font-semibold text-center whitespace-nowrap">Receipt</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fee in recent_fees %}
+                            <tr class="border-b hover:bg-gray-50 transition text-xs sm:text-sm">
+                                <td class="p-2 sm:p-3 text-gray-500 whitespace-nowrap">{{ fee.payment_date.strftime('%d %b %Y') }}</td>
+                                <td class="p-2 sm:p-3 font-bold text-gray-800 whitespace-nowrap">{{ fee.student.name }}</td>
+                                <td class="p-2 sm:p-3 whitespace-nowrap"><span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">{{ fee.student.course.name }}</span></td>
+                                <td class="p-2 sm:p-3 font-bold text-green-600 whitespace-nowrap">₹{{ fee.amount_paid }}</td>
+                                <td class="p-2 sm:p-3 text-center whitespace-nowrap">
+                                    <button class="text-blue-500 hover:text-blue-700" title="Print Receipt" onclick="alert('Print Receipt feature coming soon!')">
+                                        <i class="fas fa-print"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="p-4 sm:p-6 text-center text-gray-500 italic">No transactions found. Collect your first fee!</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        function showStudentDetails() {
+            const selectBox = document.getElementById("studentSelect");
+            const selectedOption = selectBox.options[selectBox.selectedIndex];
+            const detailsBox = document.getElementById("studentDetailsBox");
+            const amountInput = document.getElementById("amountInput");
+            
+            if (selectedOption.value) {
+                const course = selectedOption.getAttribute("data-course");
+                const total = selectedOption.getAttribute("data-total");
+                const paid = selectedOption.getAttribute("data-paid");
+                const balance = selectedOption.getAttribute("data-balance");
+                
+                document.getElementById("lblCourse").innerText = course;
+                document.getElementById("lblTotal").innerText = "₹" + total;
+                document.getElementById("lblPaid").innerText = "₹" + paid;
+                document.getElementById("lblBalance").innerText = "₹" + balance;
+                
+                if(parseInt(balance) > 0) {
+                    amountInput.value = balance;
+                } else {
+                    amountInput.value = 0;
+                }
+                
+                detailsBox.classList.remove("hidden");
+            } else {
+                detailsBox.classList.add("hidden");
+            }
+        }
+    </script>
+</body>
+</html>

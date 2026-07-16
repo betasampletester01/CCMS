@@ -1,0 +1,12 @@
+Step-1
+flask db init
+Step-2
+flask db migrate -m "added course duration"
+Step-3
+flask db upgrade
+
+
+
+flask db init
+flask db migrate
+flask db upgrade
