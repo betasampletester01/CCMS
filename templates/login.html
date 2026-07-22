@@ -31,7 +31,21 @@
             </div>
             <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition">Login</button>
         </form>
+  <!-- ... ऊपर का फॉर्म कोड ... -->
         <p class="mt-4 text-center text-sm text-gray-600">Don't have an account? <a href="/register" class="text-blue-600 font-semibold">Register here</a></p>
-    </div>
+        
+        <!-- Google Button यहाँ आएगा (</div> के अंदर) -->
+        <div class="mt-4 flex items-center justify-between">
+            <span class="border-b w-1/5 lg:w-1/4"></span>
+            <a href="#" class="text-xs text-center text-gray-500 uppercase">or</a>
+            <span class="border-b w-1/5 lg:w-1/4"></span>
+        </div>
+
+        <a href="{{ url_for('google_login') }}" class="mt-4 flex items-center justify-center w-full border border-gray-300 rounded-lg shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google Logo" class="h-5 w-5 mr-2">
+            Continue with Google
+        </a>
+
+    </div> <!-- यह मेन बॉक्स यहाँ बंद होना चाहिए -->
 </body>
 </html>
