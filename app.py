@@ -1,4 +1,6 @@
 import os
+import secrets
+from authlib.integrations.flask_client import OAuth
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -8,8 +10,21 @@ from flask_migrate import Migrate
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'devi-computer-secret-key' # सेशन सुरक्षित रखने के लिए
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///institute.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///institute.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# --- Google Login Setup ---
+app.config['GOOGLE_CLIENT_ID'] = os.environ.get('GOOGLE_CLIENT_ID', '867317038959-tg9dss8kn0dsgkbn4e7tmfelelh6noji.apps.googleusercontent.com')
+app.config['GOOGLE_CLIENT_SECRET'] = os.environ.get('GOOGLE_CLIENT_SECRET', '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')
+
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={
+        'scope': 'openid email profile'
+    }
+)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
@@ -93,13 +108,11 @@ def index():
             
     # डेटा को index.html पर भेजें
     return render_template('index.html', total_students=total_students, total_pending_balance=total_pending_balance)
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        # Puraana: return redirect(url_for('dashboard'))
-        return redirect(url_for('index')) # Isey change karein
-    
+       return redirect(url_for('index'))
+        
     if request.method == 'POST':
         i_name = request.form.get('institute_name')
         o_name = request.form.get('owner_name')
@@ -133,8 +146,8 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        # Puraana: return redirect(url_for('dashboard'))
-        return redirect(url_for('index')) # Isey change karein
+     return redirect(url_for('index'))
+        
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
@@ -144,8 +157,7 @@ def login():
         # पासवर्ड चेक करें
         if institute and check_password_hash(institute.password_hash, password):
             login_user(institute)
-            # Puraana: return redirect(url_for('dashboard'))
-            return redirect(url_for('index')) # Isey change karein
+            return redirect(url_for('index'))
         else:
             flash('Invalid email or password!', 'error')
             
@@ -401,6 +413,64 @@ def attendance():
                            students=students, 
                            selected_date=selected_date_str, 
                            attendance_map=attendance_map)
+
+# --- PRINT RECEIPT ROUTE ---
+@app.route('/print_receipt/<int:fee_id>')
+@login_required
+def print_receipt(fee_id):
+    # डेटाबेस से वह फीस रिकॉर्ड निकालें
+    fee = FeeRecord.query.get_or_404(fee_id)
+    
+    # सुरक्षा: चेक करें कि यह फीस इसी इंस्टिट्यूट की है
+    if fee.institute_id != current_user.id:
+        flash("You are not authorized to view this receipt.", "error")
+        return redirect(url_for('fees'))
+        
+    return render_template('receipt.html', fee=fee)
+# --- GOOGLE LOGIN ROUTES ---
+@app.route('/login/google')
+def google_login():
+    # यह यूज़र को Google के लॉगिन पेज पर भेजेगा
+    redirect_uri = url_for('google_authorize', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+@app.route('/authorize/google')
+def google_authorize():
+    # Google लॉगिन होने के बाद वापस यहाँ डेटा भेजेगा
+    token = google.authorize_access_token()
+    user_info = token.get('userinfo')
+    
+    if not user_info:
+        flash('Google login failed!', 'error')
+        return redirect(url_for('login'))
+        
+    email = user_info['email']
+    name = user_info.get('name', 'Google User')
+    
+    # चेक करें कि क्या यह ईमेल पहले से हमारे डेटाबेस में है
+    institute = Institute.query.filter_by(email=email).first()
+    
+    if not institute:
+        # अगर यूज़र नया है, तो उसका नया अकाउंट बना दें (Sign Up)
+        # चूँकि पासवर्ड ज़रूरी है, हम एक रैंडम मजबूत पासवर्ड सेट कर देंगे
+        random_password = secrets.token_hex(16)
+        hashed_password = generate_password_hash(random_password, method='pbkdf2:sha256')
+        
+        institute = Institute(
+            institute_name=name + "'s Institute", # डिफ़ॉल्ट नाम
+            owner_name=name,
+            email=email,
+            password_hash=hashed_password,
+            is_whatsapp_enabled=False
+        )
+        db.session.add(institute)
+        db.session.commit()
+    
+    # यूज़र को लॉगिन कराएं
+    login_user(institute)
+    flash('Logged in successfully via Google!', 'success')
+    return redirect(url_for('index'))
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
